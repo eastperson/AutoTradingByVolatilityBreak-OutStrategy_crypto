@@ -2,6 +2,8 @@ import time
 import pyupbit
 import datetime
 import requests
+import schedule
+from fbprophet import Prophet
 
 auth_token = ''
 
@@ -49,6 +51,28 @@ def get_current_price(ticker):
     """현재가 조회"""
     return pyupbit.get_orderbook(tickers=ticker)[0]["orderbook_units"][0]["ask_price"]
 
+predicted_close_price = 0
+def predict_price(ticker):
+    """Prophet으로 당일 종가 가격 예측"""
+    global predicted_close_price
+    df = pyupbit.get_ohlcv(ticker, interval="minute60")
+    df = df.reset_index()
+    df['ds'] = df['index']
+    df['y'] = df['close']
+    data = df[['ds','y']]
+    model = Prophet()
+    model.fit(data)
+    future = model.make_future_dataframe(periods=24, freq='H')
+    forecast = model.predict(future)
+    closeDf = forecast[forecast['ds'] == forecast.iloc[-1]['ds'].replace(hour=9)]
+    if len(closeDf) == 0:
+        closeDf = forecast[forecast['ds'] == data.iloc[-1]['ds'].replace(hour=9)]
+    closeValue = closeDf['yhat'].values[0]
+    predicted_close_price = closeValue
+    post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " +str(predicted_close_price))
+predict_price("KRW-BTC")
+schedule.every().hour.do(lambda: predict_price("KRW-BTC"))
+
 # 로그인
 upbit = pyupbit.Upbit(access, secret)
 k_value = 0.5
@@ -68,6 +92,8 @@ while True:
         start_time = get_start_time("KRW-BTC")
         # 마감시간 업비트 API 기준 일봉 마감 시간 09:00 + 1일
         end_time = start_time + datetime.timedelta(days=1)
+
+        schedule.run_pending()
         
         # 마감시간 - 10초까지 돌아간다.
         if start_time < now < end_time - datetime.timedelta(seconds=10):
@@ -78,7 +104,7 @@ while True:
             # 현재 시가
             current_price = get_current_price("KRW-BTC")
             # 현재 가격이 목표값보다 높다면
-            if target_price < current_price and ma15 < current_price:
+            if target_price < current_price and ma15 < current_price and current_price < predicted_close_price:
                 # 내원화 잔고를 조회하고
                 krw = get_balance("KRW")
                 # 잔고가 최소 거래 금액인 5000원보다 높다면
@@ -86,6 +112,14 @@ while True:
                     # 코인을 산다. 수수료 0.05%를 고려한다.
                     buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)
                     post_message(auth_token,"#crypto", "BTC buy : " +str(buy_result))
+        elif target_price < current_price and ma15 < current_price and current_price >= predicted_close_price:
+            # 현재 BTC의 잔고를 가져와서 
+            btc = get_balance("BTC")
+            post_message(auth_token,"#crypto", "cur price : " +str(current_price) + ", ai predicted close price : " + str(predicted_close_price))
+            # 현재 잔고가 5000원 이상이면 판매를 한다.
+            if btc > 0.00008:
+                sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
+                post_message(auth_token,"#crypto", "BTC sell : " +str(sell_result))
         # 9시 10초전부터는 비트코인을 전량 매도한다.
         else:
             # 현재 BTC의 잔고를 가져와서 
@@ -93,7 +127,7 @@ while True:
             # 현재 잔고가 5000원 이상이면 판매를 한다.
             if btc > 0.00008:
                 sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
-                post_message(auth_token,"#crypto", "BTC buy : " +str(sell_result))
+                post_message(auth_token,"#crypto", "BTC sell : " +str(sell_result))
         time.sleep(1)
     except Exception as e:
         print(e)

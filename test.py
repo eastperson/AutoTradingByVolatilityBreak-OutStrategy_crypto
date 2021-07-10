@@ -1,7 +1,7 @@
 from slacker import Slacker
 import requests
 
-auth_token = ''
+auth_token = 'xoxb-1886651932615-2253766631622-ePtPj9v8nzFt8NwGxVi072YO'
 
 def post_message(token, channel, text):
     response = requests.post("https://slack.com/api/chat.postMessage",
@@ -12,8 +12,8 @@ def post_message(token, channel, text):
 
 import pyupbit
 
-access = ""          # 본인 값으로 변경
-secret = ""          # 본인 값으로 변경
+access = "pbxCPbQ9SokGoJrsJlcXYkm2j8dBCNQLYMuxdFxL"          # 본인 값으로 변경
+secret = "bPnk06xTLhigOx4d812PdOSIqSr5cYK5QDlxrP3R"          # 본인 값으로 변경
 upbit = pyupbit.Upbit(access, secret)
 
 print(upbit.get_balance("KRW-XRP"))     # KRW-XRP 조회
