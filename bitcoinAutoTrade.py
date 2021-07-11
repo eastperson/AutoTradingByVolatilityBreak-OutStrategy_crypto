@@ -69,9 +69,19 @@ def predict_price(ticker):
         closeDf = forecast[forecast['ds'] == data.iloc[-1]['ds'].replace(hour=9)]
     closeValue = closeDf['yhat'].values[0]
     predicted_close_price = closeValue
-    post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " +str(predicted_close_price))
-predict_price("KRW-BTC")
-schedule.every().hour.do(lambda: predict_price("KRW-BTC"))
+    post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " + str(predicted_close_price))
+
+def post_message_daily(ticker):
+        target_price = get_target_price(ticker, k_value)
+        # 15일 이동평균선 계산
+        ma15 = get_ma15(ticker)
+        # 현재 시가
+        current_price = get_current_price(ticker)
+
+        post_message(auth_token,"#crypto", "BTC 현재 가격 : " + str(current_price))
+        post_message(auth_token,"#crypto", "BTC 타겟 가격 : " + str(target_price))
+        post_message(auth_token,"#crypto", "BTC 15일 이동 평균선 : " + str(ma15))
+        predict_price(ticker)
 
 # 로그인
 upbit = pyupbit.Upbit(access, secret)
@@ -80,7 +90,10 @@ print("autotrade start")
 post_message(auth_token,"#crypto", ":eight_pointed_black_star::eight_pointed_black_star::eight_pointed_black_star: 자동 매매가 시작합니다. :eight_pointed_black_star::eight_pointed_black_star::eight_pointed_black_star:")
 post_message(auth_token,"#crypto", "k 값 : " + str(k_value))
 post_message(auth_token,"#crypto", "현재 자금 : " + str(upbit.get_balance("KRW")))
+post_message_daily("KRW-BTC")
 
+schedule.every().hour.do(lambda: predict_price("KRW-BTC"))
+schedule.every().day.at("09:30").do(lambda: post_message_daily("KRW-BTC"))
 
 
 # 자동매매 시작
