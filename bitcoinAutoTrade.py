@@ -81,6 +81,9 @@ def post_message_daily(ticker):
         flag = ""
 
         post_message(auth_token,"#crypto", "-----------------------------------------------------------------")
+        post_message(auth_token,"#crypto", "k 값 : " + str(k_value))
+        post_message(auth_token,"#crypto", "현재 원화 잔액 : " + str(upbit.get_balance("KRW")))
+        post_message(auth_token,"#crypto", "현재 비트코인 잔액 : " + str(get_balance("BTC")))
         post_message(auth_token,"#crypto", "BTC 현재 가격 : " + str(current_price))
         if current_price < target_price :
             flag = ":red_circle:"
@@ -141,7 +144,8 @@ while True:
                 if krw > 5000:
                     # 코인을 산다. 수수료 0.05%를 고려한다.
                     buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)
-                    post_message(auth_token,"#crypto", "BTC buy : " +str(buy_result))
+                    post_message_daily("KRW-BTC")
+                    post_message(auth_token,"#crypto", ":tada: BTC buy : " + str(buy_result))
         # 9시 10초전부터는 비트코인을 전량 매도한다.
         else:
             # 현재 BTC의 잔고를 가져와서 
@@ -149,6 +153,7 @@ while True:
             # 현재 비트코인 잔고가 0.00008 이상이면 판매를 한다.
             if btc > 0.00008:
                 sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
+                post_message(auth_token,"#crypto", "현재 잔고 : " + str(upbit.get_balance("KRW")))
                 post_message(auth_token,"#crypto", "BTC sell : " +str(sell_result))
         time.sleep(1)
     except Exception as e:
