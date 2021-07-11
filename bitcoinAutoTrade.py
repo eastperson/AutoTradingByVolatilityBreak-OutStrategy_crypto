@@ -69,7 +69,6 @@ def predict_price(ticker):
         closeDf = forecast[forecast['ds'] == data.iloc[-1]['ds'].replace(hour=9)]
     closeValue = closeDf['yhat'].values[0]
     predicted_close_price = closeValue
-    post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " + str(predicted_close_price))
 
 def post_message_daily(ticker):
         target_price = get_target_price(ticker, k_value)
@@ -78,10 +77,27 @@ def post_message_daily(ticker):
         # 현재 시가
         current_price = get_current_price(ticker)
 
-        post_message(auth_token,"#crypto", "BTC 현재 가격 : " + str(current_price))
+        flag = ""
+
+        post_message(auth_token,"#crypto", "-----------------------------------------------------------------")
+        if current_price < target_price :
+            flag = ":red_circle:"
+        else :
+            flag = ":large_blue_circle:"
+        post_message(auth_token,"#crypto", "BTC 현재 가격 : " + str(current_price) + " " + flag)
+
+        if current_price < ma15 :
+            flag = ":red_circle:"
+        else :
+            flag = ":large_blue_circle:"       
         post_message(auth_token,"#crypto", "BTC 타겟 가격 : " + str(target_price))
         post_message(auth_token,"#crypto", "BTC 15일 이동 평균선 : " + str(ma15))
-        predict_price(ticker)
+        if predicted_close_price < current_price :
+            flag = ":red_circle:"
+        else :
+            flag = ":large_blue_circle:" 
+        post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " + str(predicted_close_price))
+        post_message(auth_token,"#crypto", "-----------------------------------------------------------------")
 
 # 로그인
 upbit = pyupbit.Upbit(access, secret)
@@ -93,7 +109,7 @@ post_message(auth_token,"#crypto", "현재 자금 : " + str(upbit.get_balance("K
 post_message_daily("KRW-BTC")
 
 schedule.every().hour.do(lambda: predict_price("KRW-BTC"))
-schedule.every().day.at("09:30").do(lambda: post_message_daily("KRW-BTC"))
+schedule.every(6).hour.do(lambda: post_message_daily("KRW-BTC"))
 
 
 # 자동매매 시작
@@ -118,26 +134,18 @@ while True:
             current_price = get_current_price("KRW-BTC")
             # 현재 가격이 목표값보다 높다면
             if target_price < current_price and ma15 < current_price and current_price < predicted_close_price:
-                # 내원화 잔고를 조회하고
+                # 내 원화 잔고를 조회하고
                 krw = get_balance("KRW")
                 # 잔고가 최소 거래 금액인 5000원보다 높다면
                 if krw > 5000:
                     # 코인을 산다. 수수료 0.05%를 고려한다.
                     buy_result = upbit.buy_market_order("KRW-BTC", krw*0.9995)
                     post_message(auth_token,"#crypto", "BTC buy : " +str(buy_result))
-        elif target_price < current_price and ma15 < current_price and current_price >= predicted_close_price:
-            # 현재 BTC의 잔고를 가져와서 
-            btc = get_balance("BTC")
-            post_message(auth_token,"#crypto", "cur price : " +str(current_price) + ", ai predicted close price : " + str(predicted_close_price))
-            # 현재 잔고가 5000원 이상이면 판매를 한다.
-            if btc > 0.00008:
-                sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
-                post_message(auth_token,"#crypto", "BTC sell : " +str(sell_result))
         # 9시 10초전부터는 비트코인을 전량 매도한다.
         else:
             # 현재 BTC의 잔고를 가져와서 
             btc = get_balance("BTC")
-            # 현재 잔고가 5000원 이상이면 판매를 한다.
+            # 현재 비트코인 잔고가 0.00008 이상이면 판매를 한다.
             if btc > 0.00008:
                 sell_result = upbit.sell_market_order("KRW-BTC", btc*0.9995)
                 post_message(auth_token,"#crypto", "BTC sell : " +str(sell_result))
