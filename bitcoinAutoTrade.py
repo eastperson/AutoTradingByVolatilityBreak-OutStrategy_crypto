@@ -109,7 +109,7 @@ post_message(auth_token,"#crypto", "현재 자금 : " + str(upbit.get_balance("K
 post_message_daily("KRW-BTC")
 
 schedule.every().hour.do(lambda: predict_price("KRW-BTC"))
-schedule.every(6).hour.do(lambda: post_message_daily("KRW-BTC"))
+schedule.every(360).minutes.do(lambda: post_message_daily("KRW-BTC"))
 
 
 # 자동매매 시작
