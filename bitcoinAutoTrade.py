@@ -69,6 +69,7 @@ def predict_price(ticker):
         closeDf = forecast[forecast['ds'] == data.iloc[-1]['ds'].replace(hour=9)]
     closeValue = closeDf['yhat'].values[0]
     predicted_close_price = closeValue
+predict_price("KRW-BTC")
 
 def post_message_daily(ticker):
         target_price = get_target_price(ticker, k_value)
@@ -80,23 +81,23 @@ def post_message_daily(ticker):
         flag = ""
 
         post_message(auth_token,"#crypto", "-----------------------------------------------------------------")
+        post_message(auth_token,"#crypto", "BTC 현재 가격 : " + str(current_price))
         if current_price < target_price :
             flag = ":red_circle:"
         else :
             flag = ":large_blue_circle:"
-        post_message(auth_token,"#crypto", "BTC 현재 가격 : " + str(current_price) + " " + flag)
 
+        post_message(auth_token,"#crypto", "BTC 타겟 가격 : " + str(target_price) + " " + flag)
         if current_price < ma15 :
             flag = ":red_circle:"
         else :
             flag = ":large_blue_circle:"       
-        post_message(auth_token,"#crypto", "BTC 타겟 가격 : " + str(target_price))
-        post_message(auth_token,"#crypto", "BTC 15일 이동 평균선 : " + str(ma15))
+        post_message(auth_token,"#crypto", "BTC 15일 이동 평균선 : " + str(ma15) + " " + flag)
         if predicted_close_price < current_price :
             flag = ":red_circle:"
         else :
             flag = ":large_blue_circle:" 
-        post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " + str(predicted_close_price))
+        post_message(auth_token,"#crypto", "BTC 당일 예상 종가 : " + str(predicted_close_price) + " " + flag)
         post_message(auth_token,"#crypto", "-----------------------------------------------------------------")
 
 # 로그인
